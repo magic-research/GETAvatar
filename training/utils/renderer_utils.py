@@ -8,7 +8,7 @@ from torch.nn import functional as F
 from torch.utils import data
 from scipy.spatial import Delaunay
 from skimage.measure import marching_cubes
-import mcubes
+# import mcubes
 
 import pytorch3d.io
 from pytorch3d.structures import Meshes

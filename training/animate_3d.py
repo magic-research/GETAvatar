@@ -118,9 +118,7 @@ def gen_interp_video(
         print('error')
     
     c_cam_dim = 16
-    # fix camera to fix color
     c_cam = cs[:, :c_cam_dim].clone()
-    # fix smpl
     c_smpl_input = cs[:, c_cam_dim:].clone() 
     zs = torch.from_numpy(np.stack([np.random.RandomState(seed).randn(G.z_dim) for seed in all_seeds])).to(device)
     geo_z = torch.from_numpy(np.stack([np.random.RandomState(seed).randn(G.z_dim) for seed in all_seeds])).to(device)
@@ -183,56 +181,50 @@ def gen_interp_video(
         for yi in range(grid_h):
             for xi in range(grid_w):
                 all_imgs = []
-                if render_all_pose:
-                    pose_num = 4
+
+                interp_geo = grid_geo[yi][xi]
+                interp_tex = grid_tex[yi][xi]
+                interp_smpl = grid_smpl[yi][xi]
+                w_geo = torch.from_numpy(interp_geo(frame_idx / w_frames)).to(device).float()
+                w_tex = torch.from_numpy(interp_tex(frame_idx / w_frames)).to(device).float()
+                c_smpl = torch.from_numpy(interp_smpl(frame_idx / w_frames)).to(device).float()
+
+                # load mocap parameter
+                mocap_data = mocap[mocap_idx]
+                mocap_params = {
+                    'body_pose': torch.from_numpy(mocap_data['body_pose']).reshape(1, -1).to(device).float(), 
+                    'global_orient': torch.from_numpy(mocap_data['global_orient']).reshape(1, -1).to(device).float(),
+                    'transl': torch.from_numpy(mocap_data['transl']).reshape(1, -1).to(device).float()
+                }
+                # align global orient
+
+                use_global_orient = True
+                c_smpl[:,3:72] =  mocap_params['body_pose']
+
+                if use_global_orient:
+                    c_smpl[:,0:3] = mocap_params['global_orient']
                 else:
-                    pose_num = 1
-                if True:
-                    # EG3D
-                    interp_geo = grid_geo[yi][xi]
-                    interp_tex = grid_tex[yi][xi]
-                    interp_smpl = grid_smpl[yi][xi]
-                    w_geo = torch.from_numpy(interp_geo(frame_idx / w_frames)).to(device).float()
-                    w_tex = torch.from_numpy(interp_tex(frame_idx / w_frames)).to(device).float()
-                    c_smpl = torch.from_numpy(interp_smpl(frame_idx / w_frames)).to(device).float()
+                    c_smpl[:,0:3] = torch.from_numpy(np.array([0.0000,  0.0000,  0.0000])).to(device).float()
 
+                c_input = torch.cat((c, c_smpl.reshape(1, -1)), dim=-1).reshape(1, -1).float()
 
-                    # load mocap parameter
-                    mocap_data = mocap[mocap_idx]
-                    mocap_params = {
-                        'body_pose': torch.from_numpy(mocap_data['body_pose']).reshape(1, -1).to(device).float(), 
-                        'global_orient': torch.from_numpy(mocap_data['global_orient']).reshape(1, -1).to(device).float(),
-                        'transl': torch.from_numpy(mocap_data['transl']).reshape(1, -1).to(device).float()
-                   }
-                    # align global orient
-
-                    use_global_orient = True
-                    c_smpl[:,3:72] =  mocap_params['body_pose']
-
-                    if use_global_orient:
-                        c_smpl[:,0:3] = mocap_params['global_orient']
-                    else:
-                        c_smpl[:,0:3] = torch.from_numpy(np.array([0.0000,  0.0000,  0.0000])).to(device).float()
-
-                    c_input = torch.cat((c, c_smpl.reshape(1, -1)), dim=-1).reshape(1, -1).float()
-
-                    img, _, _, _, _, _, _, _, _, _, _, _, _  = G.synthesis.generate(
-                        ws_tex=w_tex.unsqueeze(0), c=c_input, ws_geo=w_geo.unsqueeze(0), 
-                        noise_mode='const', truncation_psi=0.7)
-                    G.requires_grad_(True)
-                    normal_img, _, _, _, _, _, _, _, _, _, _, _, _ = G.synthesis.generate_normal_map(
-                        ws_tex=w_tex.unsqueeze(0), c=c_input, ws_geo=w_geo.unsqueeze(0),
-                        noise_mode='const', truncation_psi=0.7)
-                    G.requires_grad_(False)
-                    rgb_img = img[:, :3]
-                    normal_img = normal_img[:,:3]
-                    
-                    if use_global_orient:
-                        rgb_img = torch.flip(rgb_img, dims=[2,3])
-                        normal_img = torch.flip(normal_img, dims=[2,3])
-                    
-                    total_img = torch.cat((rgb_img, normal_img[:,:3]), dim=-1)
-                    all_imgs.append(total_img)
+                img, _, _, _, _, _, _, _, _, _, _, _, _, _  = G.synthesis.generate(
+                    ws_tex=w_tex.unsqueeze(0), c=c_input, ws_geo=w_geo.unsqueeze(0), 
+                    noise_mode='const', truncation_psi=0.7)
+                G.requires_grad_(True)
+                normal_img, _, _, _, _, _, _, _, _, _, _, _, _, _ = G.synthesis.generate_normal_map(
+                    ws_tex=w_tex.unsqueeze(0), c=c_input, ws_geo=w_geo.unsqueeze(0),
+                    noise_mode='const', truncation_psi=0.7)
+                G.requires_grad_(False)
+                rgb_img = img[:, :3]
+                normal_img = normal_img[:,:3]
+                
+                if use_global_orient:
+                    rgb_img = torch.flip(rgb_img, dims=[2,3])
+                    normal_img = torch.flip(normal_img, dims=[2,3])
+                
+                total_img = torch.cat((rgb_img, normal_img[:,:3]), dim=-1)
+                all_imgs.append(total_img)
 
                 if len(all_imgs) > 1:
                     all_imgs = torch.cat(all_imgs, dim=-1)
@@ -294,7 +286,6 @@ def inference(
     torch.backends.cudnn.allow_tf32 = True  # Improves numerical accuracy.
     conv2d_gradfix.enabled = True  # Improves training speed.
     grid_sample_gradfix.enabled = True  # Avoids errors with the augmentation pipe.
-
 
     common_kwargs = dict(
         c_dim=0, img_resolution=training_set_kwargs['resolution'] if 'resolution' in training_set_kwargs else 1024, img_channels=3)

@@ -19,12 +19,6 @@ import cv2
 import pyspng
 
 
-# try:
-#     import pyspng
-# except ImportError:
-#     pyspng = None
-
-
 # ----------------------------------------------------------------------------
 
 class Dataset(torch.utils.data.Dataset):
@@ -215,6 +209,7 @@ class ImageFolderBaseDataset(Dataset):
     def __getstate__(self):
         return dict(super().__getstate__(), _zipfile=None)
 
+
     def _load_raw_image(self, raw_idx):
         fname = self._image_fnames[raw_idx]
         with self._open_file(fname) as f:
@@ -223,7 +218,7 @@ class ImageFolderBaseDataset(Dataset):
                 image = pyspng.load(f.read())
             else:
                 image = np.array(PIL.Image.open(f))
-            # image = image[..., :3] * (image[..., -1:] == 255) + (255. - image[..., -1:])
+
             assert image.shape[-1]==4
             image = image[..., :3] * (image[..., -1:] == 255) + (255. - image[..., -1:])
             image = PIL.Image.fromarray(image.astype('uint8'), 'RGB')
@@ -303,7 +298,6 @@ class CameraSMPLDataset(ImageFolderBaseDataset):
         img = img * (mask > 0).astype(np.float) + background * (1 - (mask > 0).astype(np.float))
         return np.ascontiguousarray(img),  np.ascontiguousarray(mask)
 
-    # def _load_image_and_mask(self, raw_idx):
     def _load_rgb_and_normal_and_mask(self, raw_idx):
         fname = self._image_fnames[raw_idx]
         with self._open_file(fname) as f:

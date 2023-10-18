@@ -63,22 +63,13 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         self.n_freq_posenc_geo = 1
         self.render_type = render_type
         
-        # thuman: tensor([-0.8394, -1.2347, -0.7895]) tensor([0.8431, 0.9587, 0.9094])
-        # render_people: tensor([-1.0043, -1.3278, -0.4914]) tensor([1.0058, 0.8841, 0.7573])
         self.obs_bbox_y_max = 0.96
         self.obs_bbox_y_min = -1.33
         self.dmtet_scale = self.obs_bbox_y_max - self.obs_bbox_y_min
         self.obs_bbox_y_center = 0.5 * (self.obs_bbox_y_max + self.obs_bbox_y_min)
         self.obs_bbox_center_coordinates = torch.tensor([0.0, self.obs_bbox_y_center, 0.0]).reshape(1, 1, 3).float().to(self.device)
 
-        # self.cano_bbox_y_max = 0.65
-        # self.cano_bbox_y_min = -1.31
-        # self.cano_bbox_y_center = 0.5 * (self.cano_bbox_y_max + self.cano_bbox_y_min)
         self.cano_bbox_length = 2.0 # range: [-1.185, 0.815]
-        # 1.0: [[-0.8719, -1.0534, -0.1224], [0.8731, 0.5554, 0.1691]]
-        # 1.1: [[-1.0464, -1.2143, -0.1516], [1.0476, 0.7163, 0.1983]]  
-        
-        # dim_embed_geo = 3 * self.n_freq_posenc_geo * 2
         self.w_dim = w_dim
         self.c_cam_dim = 16
         self.img_resolution = img_resolution
@@ -103,8 +94,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
 
         # Renderer we used.
         dmtet_renderer = NeuralRender(device, blender_camera_model=blender_camera, smpl_camera_model=smpl_camera)
-
-        # TODO: add body bbox
 
         # Geometry class for DMTet
         self.dmtet_geometry = DMTetGeometry(
@@ -145,7 +134,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
             self.to_rgb = ToRGBLayer(
                 self.feat_channel, self.img_channels, w_dim=w_dim,
                 conv_clamp=256, channels_last=self.channels_last, device=self.device)
-            # self.rgb_decoder = OSGDecoder(self.feat_channel, device=device)
 
         if self.img_resolution == 256:
             self.superresolution = SuperresolutionHybrid4X(
@@ -191,13 +179,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
         ]).float().to(self.device)
         
-        # # 1.0
-        # canonical_bbox = torch.tensor([[-0.8719, -1.0534, -0.1224], [0.8731, 0.5554, 0.1691]]).reshape(1,2,3).float().to(self.device)
-        # # 1.1
-        # canonical_bbox = torch.tensor([[-1.0464, -1.2143, -0.1516], [1.0476, 0.7163, 0.1983]]).reshape(1,2,3).float().to(self.device)
-        # # 1.2
-        # canonical_bbox = torch.tensor([[-1.2209, -1.3752, -0.1807], [1.2221, 0.8772, 0.2274]]).reshape(1,2,3).float().to(self.device)
-        # final
         canonical_bbox = torch.tensor([[-1.05, -1.20, -0.18], [1.05, 0.70, 0.22]]).reshape(1,2,3).float().to(self.device)
 
         self.register_buffer('pose_canonical', pose_canonical)
@@ -256,20 +237,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         ober2cano_transform = torch.matmul(verts_transform_canonical, ober2cano_transform)
         return ober2cano_transform
     
-    # def inverse_skinning(self, coords, verts, triangles_obs, ober2cano_transform):
-    #     batch_size = coords.shape[0]
-    #     batch_obs_body_sdf = cal_sdf_batch(verts, self.faces,
-    #                 triangles_obs, coords, self.device) # [batch_size, 98653, 1]
-    #     batch_mask = (batch_obs_body_sdf < 0.3).squeeze(-1) # [batch_size, 98653]
-
-    #     for idx in range(batch_size):
-    #         cur_mask = batch_mask[idx:idx+1]
-    #         cur_coords = coords[idx:idx+1]
-    #         valid_coords_obs = cur_coords[cur_mask].unsqueeze(0)
-    #         valid_coords_cano, valid = self.unpose(valid_coords_obs, verts[idx:idx+1], ober2cano_transform[idx:idx+1])
-    #         coords[idx:idx+1][cur_mask] = valid_coords_cano
-
-    #     return coords, batch_obs_body_sdf, batch_mask
 
     def canonical_mapping(self, coords, verts, body_bbox, ober2cano_transform):
         mask, filtered_coords_mask, max_length, filtered_coords, _ = self.filter_and_pad(coords, body_bbox)
@@ -369,28 +336,13 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         bs, nv = verts.shape[:2]
 
         with torch.no_grad():
-            # try:
             neighbs_dist, neighbs, _ = knn_points(coords, verts, K=k_neigh)
             neighbs_dist = torch.sqrt(neighbs_dist)
-
-        # weight_std2 = 2. * weight_std ** 2
-        # coords_neighbs_lbs_weight = lbs_weights[neighbs] # (bs, n_rays*K, k_neigh, 24)
-        # # (bs, n_rays*K, k_neigh)
-        # coords_neighbs_weight_conf = torch.exp(-torch.sum(torch.abs(coords_neighbs_lbs_weight - coords_neighbs_lbs_weight[..., 0:1, :]), dim=-1) / weight_std2)
-        # coords_neighbs_weight_conf = torch.gt(coords_neighbs_weight_conf, 0.9).float()  # why 0.9?
-        # coords_neighbs_weight = torch.exp(-neighbs_dist) # (bs, n_rays*K, k_neigh)
-        # coords_neighbs_weight = coords_neighbs_weight * coords_neighbs_weight_conf
-        # coords_neighbs_weight = coords_neighbs_weight / coords_neighbs_weight.sum(-1, keepdim=True) # (bs, n_rays*K, k_neigh)
-
-        # coords_neighbs_transform_inv = batch_index_select(verts_transform_inv, neighbs, self.device) # (bs, n_rays*K, k_neigh, 4, 4)
-        # coords_transform_inv = torch.sum(coords_neighbs_weight.unsqueeze(-1).unsqueeze(-1)*coords_neighbs_transform_inv, dim=2) # (bs, n_rays*K, 4, 4)
-        # coords_dist = torch.sum(coords_neighbs_weight*neighbs_dist, dim=2, keepdim=True) # (bs, n_rays*K, 1)
 
         coords_neighbs_transform_inv = batch_index_select(verts_transform_inv, neighbs, self.device) # (bs, n_rays*K, k_neigh, 4, 4)
         coords_transform_inv = coords_neighbs_transform_inv.squeeze(2)
 
         return neighbs_dist, coords_transform_inv
-
 
     def get_sdf_deformation_prediction(
             self, ws, position=None, sdf_feature=None,
@@ -412,9 +364,7 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         num_pts = init_position.shape[1]
         # Step 1: predict the SDF and deformation
         if self.one_3d_generator:
-            # init_position[:, :, 1] += self.obs_bbox_y_center
             init_position = init_position + self.obs_bbox_center_coordinates
-            # cano_position, batch_obs_body_sdf, batch_mask = self.inverse_skinning(init_position, **canonical_mapping_kwargs)
             sample_coordinates_cano, sample_coordinates_obs, mask, coordinates_mask, max_length = self.canonical_mapping(init_position, **canonical_mapping_kwargs)
 
             batch_cano_body_sdf = cal_sdf_batch(
@@ -424,7 +374,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
                 sample_coordinates_cano, 
                 self.device) # [batch_size, 98653, 1]
                     
-            # sample_coordinates_cano[:, :, 1] -= self.obs_bbox_y_center
             sample_coordinates_cano = sample_coordinates_cano - self.obs_bbox_center_coordinates
             res_sdf_cano, deformation_cano = self.generator.get_sdf_def_prediction(
                 sdf_feature, ws_geo=ws,
@@ -496,7 +445,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         ws_tex = ws_tex[:, self.generator.tri_plane_synthesis.num_ws_tex:]
         ws_geo = ws_geo[:, self.generator.tri_plane_synthesis.num_ws_geo:]
         canonical_mapping_kwargs = self.get_canonical_mapping_info(c)
-        #mesh_v, mesh_f, sdf, deformation, v_deformed, sdf_reg_loss = self.get_geometry_prediction(ws_geo, sdf_feature, canonical_mapping_kwargs)
         init_position, voxel_origin, voxel_size = create_samples(N=shape_res, voxel_origin=[0, 0, 0], cube_length=self.dmtet_scale) 
         init_position = init_position.to(ws_geo.device)
         num_pts = init_position.shape[1]
@@ -527,10 +475,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
 
         sdf_samples = sdf.reshape((shape_res, shape_res, shape_res)).detach().cpu().numpy()
         verts, faces, _, _ = skimage.measure.marching_cubes(sdf_samples,level=0.0)
-        # verts, faces, normals, values = skimage.measure.marching_cubes_lewiner(
-        #                                         volume=sdf_samples,
-        #                                         gradient_direction='ascent',
-        #                                         level=0.0)
         verts[:,0] = (verts[:, 0] / float(shape_res) - 0.5) * self.dmtet_scale
         verts[:,1] = (verts[:, 1] / float(shape_res) - 0.5) * self.dmtet_scale + self.obs_bbox_y_center
         verts[:,2] = (verts[:, 2] / float(shape_res) - 0.5) * self.dmtet_scale
@@ -556,7 +500,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
             all_gb_pose = []
             all_uv_mask = []
             if self.dmtet_geometry.renderer.ctx is None:
-                # self.dmtet_geometry.renderer.ctx = dr.RasterizeGLContext(device=self.device)
                 self.dmtet_geometry.renderer.ctx = dr.RasterizeCudaContext(device=self.device)
             for v, f in zip(mesh_v, mesh_f):
                 uvs, mesh_tex_idx, gb_pos, mask = xatlas_uvmap(
@@ -585,13 +528,10 @@ class DMTETSynthesisNetwork(torch.nn.Module):
                 # Merge them together
                 img_feat = tex_feat * _tex_hard_mask.unsqueeze(dim=0) + background_feature * (
                         1 - _tex_hard_mask.unsqueeze(dim=0))
-                # network_out = self.to_rgb(img_feat.permute(0, 3, 1, 2), _ws.unsqueeze(dim=0)[:, -1])
                 network_out = img_feat
                 rgb_feat =  network_out.permute(0, 3, 1, 2)
 
                 if self.render_type == 'neural_render':
-                    # img = img[:, :3]
-                    # img = rgb_feat[:, :3]
                     img = self.to_rgb(rgb_feat, _ws.unsqueeze(dim=0)[:, -1])
                 else:
                     raise NotImplementedError
@@ -633,7 +573,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
                 v_deformed[i_batch], sdf[i_batch].squeeze(dim=-1),
                 with_uv=False, indices=tets)
             verts[:, 1] += self.obs_bbox_y_center
-            # verts = verts + self.obs_bbox_center_coordinates
             v_list.append(verts)
             f_list.append(faces)
 
@@ -679,7 +618,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         tex_pos = torch.cat(sample_tex_pose_list, dim=0) # [batch_size, max_point, 3]
         tex_coordinates_cano, tex_coordinates_obs, tex_mask, tex_coordinates_mask, tex_max_length = self.canonical_mapping(tex_pos, **canonical_mapping_kwargs)
 
-        # tex_coordinates_cano[:, :, 1] -= self.obs_bbox_y_center
         tex_coordinates_cano = tex_coordinates_cano - self.obs_bbox_center_coordinates
 
         if self.one_3d_generator:
@@ -738,7 +676,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         tex_pos = torch.cat(sample_tex_pose_list, dim=0) # [batch_size, max_point, 3]
         tex_coordinates_cano, tex_coordinates_obs, tex_mask, tex_coordinates_mask, tex_max_length = self.canonical_mapping(tex_pos, **canonical_mapping_kwargs)
 
-        # tex_coordinates_cano[:, :, 1] -= self.obs_bbox_y_center
         tex_coordinates_cano = tex_coordinates_cano - self.obs_bbox_center_coordinates
 
         if self.one_3d_generator:
@@ -759,7 +696,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
                 try:
                     surface_normal_cano = get_eikonal_term(tex_coordinates_cano, sdf_cano)
                     surface_normal_cano_length = torch.nan_to_num(torch.linalg.norm(surface_normal_cano, dim=-1, keepdim=True), 0.0)
-                    # surface_normal_cano = surface_normal_cano / (surface_normal_cano_length + 1e-5)
                     surface_normal_obs_length[tex_mask] = surface_normal_cano_length[tex_coordinates_mask]
                 except:
                     pass
@@ -819,17 +755,7 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         surface_pos = torch.cat(sample_surface_pose_list, dim=0) # [batch_size, max_point, 3]
         surface_coordinates_cano, surface_coordinates_rotate_matrix, surface_mask, surface_coordinates_mask, surface_max_length = self.canonical_mapping_normal(surface_pos, **canonical_mapping_kwargs)
 
-        # surface_coordinates_cano[:, :, 1] -= self.obs_bbox_y_center
-
         if self.one_3d_generator:
-            #normal_feat_cano = self.generator.get_normal_prediction(sdf_feature, surface_coordinates_cano, ws_geo)
-            # sdf_cano = self.generator.get_normal_prediction(sdf_feature, surface_coordinates_cano, ws_geo)
-            # sdf_cano, _ = self.generator.get_sdf_def_prediction(
-            #     sdf_feature, ws_geo=ws_geo,
-            #     position=surface_coordinates_cano,
-            #     gradient_detach=False)
-            # surface_coordinates_cano.requires_grad_(True)
-
             surface_normal_obs = torch.zeros((batch_size, max_point, 3)).to(self.device)
             if return_eikonal:
                 surface_normal_obs_length = torch.zeros((batch_size, max_point, 1)).to(self.device)
@@ -852,8 +778,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
 
                     sdf_cano = res_sdf_cano + batch_cano_body_sdf
                     surface_normal_cano = get_eikonal_term(surface_coordinates_cano, sdf_cano)
-                    #surface_normal_cano = torch.clamp(surface_normal_cano, -1.0, 1.0)
-                    #surface_normal_cano_length = torch.nan_to_num(torch.linalg.norm(surface_normal_cano, dim=-1, keepdim=True), 1e6)
                     surface_normal_cano = torch.nan_to_num(surface_normal_cano, nan=0.0)
                     surface_normal_cano_length = torch.linalg.norm(surface_normal_cano, dim=-1, keepdim=True)
 
@@ -887,7 +811,7 @@ class DMTETSynthesisNetwork(torch.nn.Module):
             final_surface_normal_obs[i][expanded_hard_mask[i]] = surface_normal_obs[i][:n_point_list[i]].reshape(-1)
             if return_eikonal:
                 surface_normal_length_list.append(surface_normal_obs_length[i][:n_point_list[i]].reshape(-1))
-        # surface_normal_obs = final_surface_normal_obs
+
 
         if return_eikonal:
             eikonal_term = torch.cat(surface_normal_length_list)
@@ -948,7 +872,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
             ws_geo = ws_geo[:, self.generator.tri_plane_synthesis.num_ws_geo:]
             mesh_v, mesh_f, sdf, deformation, v_deformed, sdf_reg_loss = self.get_geometry_prediction(ws_geo, sdf_feature)
         else:
-            # mesh_v, mesh_f, sdf, deformation, v_deformed, sdf_reg_loss = self.get_geometry_prediction(ws_geo)
             raise NotImplementedError
 
         # Step 2: use x-atlas to get uv mapping for the mesh
@@ -958,7 +881,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         all_gb_pose = []
         all_uv_mask = []
         if self.dmtet_geometry.renderer.ctx is None:
-            # self.dmtet_geometry.renderer.ctx = dr.RasterizeGLContext(device=self.device)
             self.dmtet_geometry.renderer.ctx = dr.RasterizeCudaContext(device=self.device)
         for v, f in zip(mesh_v, mesh_f):
             uvs, mesh_tex_idx, gb_pos, mask = xatlas_uvmap(
@@ -982,10 +904,7 @@ class DMTETSynthesisNetwork(torch.nn.Module):
                     tex_feature)
             else:
                 raise NotImplementedError
-                # tex_feat = self.get_texture_prediction(
-                #     _ws.unsqueeze(dim=0), [_all_gb_pose],
-                #     _ws_geo.unsqueeze(dim=0).detach(),
-                #     _tex_hard_mask.unsqueeze(dim=0))
+
             background_feature = torch.zeros_like(tex_feat)
             # Merge them together
             img_feat = tex_feat * _tex_hard_mask.unsqueeze(dim=0) + background_feature * (
@@ -1013,7 +932,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
             body_model_params = {'global_orient':c_global_orient, 'body_pose': c_body_pose, 'betas': c_betas}
             body_model_out = self.body_model(**body_model_params, return_verts=True)
             verts = body_model_out['vertices']
-            # triangles_obs = face_vertices(verts, self.faces, c.device)
 
             verts_transform = body_model_out['vertices_transform']
             shape_offsets = body_model_out['shape_offsets']
@@ -1041,7 +959,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
             canonical_mapping_kwargs = {
                 'ober2cano_transform': ober2cano_transform,
                 'verts': verts,
-                # 'triangles_obs': triangles_obs,
                 'body_bbox': body_bbox,
             }
             return canonical_mapping_kwargs
@@ -1137,14 +1054,11 @@ class DMTETSynthesisNetwork(torch.nn.Module):
             sdf_feature, _ = self.generator.get_feature(
                 ws_tex[:, :self.generator.tri_plane_synthesis.num_ws_tex],
                 ws_geo[:, :self.generator.tri_plane_synthesis.num_ws_geo])
-            # ws_tex_sr = ws_tex[:, -1:]
-            # ws_tex = ws_tex[:, self.generator.tri_plane_synthesis.num_ws_tex:]
             ws_geo = ws_geo[:, self.generator.tri_plane_synthesis.num_ws_geo:]
             canonical_mapping_kwargs = self.get_canonical_mapping_info(c)
             mesh_v, mesh_f, sdf, deformation, v_deformed, sdf_reg_loss = self.get_geometry_prediction(ws_geo, sdf_feature, canonical_mapping_kwargs)
         else:
             raise NotImplementedError
-            #mesh_v, mesh_f, sdf, deformation, v_deformed, sdf_reg_loss = self.get_geometry_prediction(ws_geo)
         # Render the mesh into 2D image (get 3d position of each image plane)
         # cam_mv: (batch_size, n_views, 4, 4)
         antilias_mask, hard_mask, return_value = self.render_mesh(mesh_v, mesh_f, cam_mv)
@@ -1155,12 +1069,7 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         
         surface_hard_mask = hard_mask
         surface_pos = [torch.cat([pos[i_view:i_view + 1] for i_view in range(run_n_view)], dim=2) for pos in surface_pos]
-        # surface_hard_mask = torch.cat(
-        #     [torch.cat(
-        #         [surface_hard_mask[i * run_n_view + i_view: i * run_n_view + i_view + 1]
-        #          for i_view in range(run_n_view)], dim=2)
-        #         for i in range(ws_geo.shape[0])], dim=0)
-        
+
         # Querying the geometry field to predict the normal feature for each pixel on the image
         if self.one_3d_generator:
             normal_obs_feat, eikonal_loss = self.get_normal_prediction(
@@ -1174,19 +1083,10 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         # Merge them together
         normal_feat = normal_obs_feat * surface_hard_mask + background_feature * (1 - surface_hard_mask)
 
-        # We should split it back to the original image shape
-        # normal_feat = torch.cat(
-        #     [torch.cat(
-        #         [normal_feat[i:i + 1, :, self.img_resolution * i_view: self.img_resolution * (i_view + 1)]
-        #          for i_view in range(run_n_view)], dim=0) for i in range(len(return_value['tex_pos']))], dim=0)
-
         normal_img = normal_feat.permute(0, 3, 1, 2)
         img_buffers_viz = None
 
         final_img = torch.cat([normal_img, antilias_mask.permute(0, 3, 1, 2)], dim=1)
-
-        # return img, antilias_mask, sdf, deformation, v_deformed, mesh_v, mesh_f, gen_camera, img_buffers_viz, \
-        #        mask_pyramid, tex_hard_mask, sdf_reg_loss, return_value
 
         if self.part_disc:
             part_img = self.get_part(final_img, c, canonical_mapping_kwargs)
@@ -1236,11 +1136,7 @@ class DMTETSynthesisNetwork(torch.nn.Module):
 
         tex_hard_mask = hard_mask
         tex_pos = [torch.cat([pos[i_view:i_view + 1] for i_view in range(run_n_view)], dim=2) for pos in tex_pos]
-        # tex_hard_mask = torch.cat(
-        #     [torch.cat(
-        #         [tex_hard_mask[i * run_n_view + i_view: i * run_n_view + i_view + 1]
-        #          for i_view in range(run_n_view)], dim=2)
-        #         for i in range(ws_tex.shape[0])], dim=0)
+
         
         # Querying the texture field to predict the texture feature for each pixel on the image
         if self.one_3d_generator:
@@ -1262,16 +1158,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         # Merge them together
         img_feat = tex_feat * tex_hard_mask + background_feature * (1 - tex_hard_mask)
 
-        # We should split it back to the original image shape
-        # img_feat = torch.cat(
-        #     [torch.cat(
-        #         [img_feat[i:i + 1, :, self.img_resolution * i_view: self.img_resolution * (i_view + 1)]
-        #          for i_view in range(run_n_view)], dim=0) for i in range(len(return_value['tex_pos']))], dim=0)
-
-        # ws_list = [ws_tex[i].unsqueeze(dim=0).expand(return_value['tex_pos'][i].shape[0], -1, -1) for i in
-        #            range(len(return_value['tex_pos']))]
-        # ws = torch.cat(ws_list, dim=0).contiguous()
-
         # Predict the RGB color for each pixel (self.to_rgb is 1x1 convolution)
         if self.feat_channel > 3:
             # network_out = self.to_rgb(img_feat.permute(0, 3, 1, 2), ws[:, -1])
@@ -1284,8 +1170,6 @@ class DMTETSynthesisNetwork(torch.nn.Module):
         img_buffers_viz = None
 
         if self.render_type == 'neural_render':
-            # img = img[:, :3]
-            # img = rgb_feat[:, :3]
             img = self.to_rgb(rgb_feat, ws_tex_sr[:, -1])
         else:
             raise NotImplementedError
@@ -1469,8 +1353,6 @@ class GeneratorDMTETMesh(torch.nn.Module):
             _, _, fine_depth = self.generate_dense_mesh(ws=ws, ws_geo=ws_geo, z=None, geo_z=None, c=c, return_depth=True)
         
         ##############################
-        # final_img, antilias_mask, sdf, deformation, v_deformed, mesh_v, mesh_f, img_buffers_viz, \
-        #        mask_pyramid, surface_hard_mask, sdf_reg_loss, eikonal_loss, return_value
         if only_img:
             normal_img = normal_part_img = None
         else:
@@ -1480,12 +1362,10 @@ class GeneratorDMTETMesh(torch.nn.Module):
                 **synthesis_kwargs)
         ##############################
         if generate_no_light:
-            # return img, mask, sdf, deformation, v_deformed, mesh_v, mesh_f, gen_camera, img_wo_light, tex_hard_mask
             if return_depth:
                 return img, mask, normal_img, sdf, deformation, v_deformed, mesh_v, mesh_f, img_wo_light, tex_hard_mask, part_img, normal_part_img, fine_depth
             else:
                 return img, mask, normal_img, sdf, deformation, v_deformed, mesh_v, mesh_f, img_wo_light, tex_hard_mask, part_img, normal_part_img
-        # return img, mask, sdf, deformation, v_deformed, mesh_v, mesh_f, gen_camera, tex_hard_mask
         if return_depth:
             return img, mask, normal_img, sdf, deformation, v_deformed, mesh_v, mesh_f, tex_hard_mask, part_img, normal_part_img, fine_depth
         else:

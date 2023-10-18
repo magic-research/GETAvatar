@@ -125,26 +125,6 @@ class UniformCameraPoseSampler:
         forward_vectors = math_utils.normalize_vecs(-camera_origins)
         return create_cam2world_matrix(forward_vectors, camera_origins)    
 
-# def create_cam2world_matrix(forward_vector, origin):
-#     """
-#     Takes in the direction the camera is pointing and the camera origin and returns a cam2world matrix.
-#     Works on batches of forward_vectors, origins. Assumes y-axis is up and that there is no camera roll.
-#     """
-
-#     forward_vector = math_utils.normalize_vecs(forward_vector)
-#     up_vector = torch.tensor([0, 0, 1], dtype=torch.float, device=origin.device).expand_as(forward_vector)
-
-#     right_vector = math_utils.normalize_vecs(torch.cross(forward_vector, up_vector, dim=-1))
-#     up_vector = math_utils.normalize_vecs(torch.cross(right_vector, forward_vector, dim=-1))
-
-#     rotation_matrix = torch.eye(4, device=origin.device).unsqueeze(0).repeat(forward_vector.shape[0], 1, 1)
-#     rotation_matrix[:, :3, :3] = torch.stack((right_vector, up_vector, -forward_vector), axis=-1)
-
-#     translation_matrix = torch.eye(4, device=origin.device).unsqueeze(0).repeat(forward_vector.shape[0], 1, 1)
-#     translation_matrix[:, :3, 3] = origin
-#     cam2world = (translation_matrix @ rotation_matrix)[:, :, :]
-#     assert(cam2world.shape[1:] == (4, 4))
-#     return cam2world
 
 def create_cam2world_matrix(forward_vector, origin):
     """Takes in the direction the camera is pointing and the camera origin and returns a cam2world matrix."""
@@ -166,26 +146,6 @@ def create_cam2world_matrix(forward_vector, origin):
 
     return cam2world
 
-# def create_cam2world_matrix(forward_vector, origin):
-#     """
-#     Takes in the direction the camera is pointing and the camera origin and returns a cam2world matrix.
-#     Works on batches of forward_vectors, origins. Assumes y-axis is up and that there is no camera roll.
-#     """
-
-#     forward_vector = math_utils.normalize_vecs(forward_vector)
-#     up_vector = torch.tensor([0, 1, 0], dtype=torch.float, device=origin.device).expand_as(forward_vector)
-
-#     right_vector = -math_utils.normalize_vecs(torch.cross(up_vector, forward_vector, dim=-1))
-#     up_vector = math_utils.normalize_vecs(torch.cross(forward_vector, right_vector, dim=-1))
-
-#     rotation_matrix = torch.eye(4, device=origin.device).unsqueeze(0).repeat(forward_vector.shape[0], 1, 1)
-#     rotation_matrix[:, :3, :3] = torch.stack((right_vector, up_vector, forward_vector), axis=-1)
-
-#     translation_matrix = torch.eye(4, device=origin.device).unsqueeze(0).repeat(forward_vector.shape[0], 1, 1)
-#     translation_matrix[:, :3, 3] = origin
-#     cam2world = (translation_matrix @ rotation_matrix)[:, :, :]
-#     assert(cam2world.shape[1:] == (4, 4))
-#     return cam2world
 
 def FOV_to_intrinsics(fov_degrees, device='cpu'):
     """

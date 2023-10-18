@@ -775,20 +775,6 @@ class MultiDiscriminator(torch.nn.Module):
             out_channels = mask_channels_dict[res // 2]
             use_fp16 = (res >= fp16_resolution)
 
-            # # cat part disc feat
-            # if res == self.p_img_resolution//8:
-            #     in_channels = channels_dict[res]*2
-            #     tmp_channels = channels_dict[res]*2
-            # # build part disc
-            # if res in [self.p_img_resolution]:
-            #     p_block = DiscriminatorBlock(0, tmp_channels, out_channels, resolution=res,
-            #         first_layer_idx=cur_layer_idx, use_fp16=use_fp16, **block_kwargs, **common_kwargs_p)
-            #     setattr(self, f'mask_pb{res}', p_block)
-            # if res in [self.p_img_resolution//2, self.p_img_resolution//4]:
-            #     p_block = DiscriminatorBlock(in_channels, tmp_channels, out_channels, resolution=res,
-            #         first_layer_idx=cur_layer_idx, use_fp16=use_fp16, **block_kwargs, **common_kwargs_p)
-            #     setattr(self, f'mask_pb{res}', p_block)
-
             block = DiscriminatorBlock(
                 in_channels, tmp_channels, out_channels, resolution=res,
                 first_layer_idx=cur_layer_idx, use_fp16=use_fp16, device=device, **block_kwargs,
@@ -812,20 +798,6 @@ class MultiDiscriminator(torch.nn.Module):
             tmp_channels = channels_dict[res]
             out_channels = channels_dict[res // 2]
             use_fp16 = (res >= fp16_resolution)
-
-            # # cat part disc feat
-            # if res == self.p_img_resolution//8:
-            #     in_channels = channels_dict[res]*2
-            #     tmp_channels = channels_dict[res]*2
-            # # build part disc
-            # if res in [self.p_img_resolution]:
-            #     p_block = DiscriminatorBlock(0, tmp_channels, out_channels, resolution=res,
-            #         first_layer_idx=cur_layer_idx, use_fp16=use_fp16, **block_kwargs, **common_kwargs_p)
-            #     setattr(self, f'norm_pb{res}', p_block)
-            # if res in [self.p_img_resolution//2, self.p_img_resolution//4]:
-            #     p_block = DiscriminatorBlock(in_channels, tmp_channels, out_channels, resolution=res,
-            #         first_layer_idx=cur_layer_idx, use_fp16=use_fp16, **block_kwargs, **common_kwargs_p)
-            #     setattr(self, f'norm_pb{res}', p_block)
 
             block = DiscriminatorBlock(
                 in_channels, tmp_channels, out_channels, resolution=res,

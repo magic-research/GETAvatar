@@ -60,7 +60,6 @@ class DMTETRenderNetwork(torch.nn.Module):
             grid_res=self.grid_res, scale=self.dmtet_scale, renderer=dmtet_renderer, render_type=render_type,
             device=self.device)
 
-
     def render_mesh(self, mesh_v, mesh_f, cam_mv):
         '''
         Function to render a generated mesh with nvdiffrast
@@ -95,15 +94,6 @@ class DMTETRenderNetwork(torch.nn.Module):
 
         scan_faces = torch.tensor(np.array(mesh.faces.astype(np.int)), dtype=torch.int).to(self.device)
         scan_verts = torch.tensor(np.array(mesh.vertices.astype(np.float32))).to(self.device)
-
-        # blender_transform_mtx = torch.tensor(
-        #     [
-        #         [1.0, 0.0, 0.0, 0.0],
-        #         [0.0, -0.1432739794254303, -0.9896830320358276, -2.299999952316284],
-        #         [0.0, 0.9896830916404724, -0.1432739645242691, -0.6659305691719055],
-        #         [0.0, 0.0, 0.0, 1.0]
-        #     ]
-        # ).float().to(self.device)
 
         blender_transform_mtx = torch.tensor(
             [

@@ -51,17 +51,7 @@ def subprocess_fn(rank, c, temp_dir):
     # Execute training loop.
     else:
         training_loop_3d.training_loop(rank=rank, **c)
-# ----------------------------------------------------------------------------
-# def init_dist():
-#     """Initialize the distribution settings"""
-#     if tmp.get_start_method(allow_none=True) is None:
-#         tmp.set_start_method('spawn')
-#     rank = int(os.getenv('RANK', 0))
-#     torch.cuda.set_device(int(os.getenv('LOCAL_RANK', 0)))
-#     tdist.init_process_group(backend='nccl', init_method='env://',
-#                             timeout=datetime.timedelta(seconds=1800))
-#     training_stats.init_multiprocessing(rank, torch.cuda.current_device())
-# ----------------------------------------------------------------------------
+
 def launch_training(c, desc, outdir, dry_run):
     dnnlib.util.Logger(should_flush=True)
 
@@ -174,7 +164,6 @@ def parse_comma_separated_list(s):
 @click.option('--deformation_multiplier', help='Multiplier for the predicted deformation', metavar='FLOAT', type=click.FloatRange(min=1.0), default=1.0, required=False)
 @click.option('--tri_plane_resolution', help='The resolution for tri plane', metavar='INT', type=click.IntRange(min=1), default=256)
 @click.option('--n_views', help='number of views when training generator', metavar='INT', type=click.IntRange(min=1), default=1)
-# @click.option('--use_tri_plane', help='Whether use tri plane representation', metavar='BOOL', type=bool, default=True, show_default=True)
 @click.option('--tet_res', help='Resolution for teteahedron', metavar='INT', type=click.IntRange(min=1), default=90)
 @click.option('--latent_dim', help='Dimention for latent code', metavar='INT', type=click.IntRange(min=1), default=512)
 @click.option('--geometry_type', help='The type of geometry generator', type=str, default='conv3d', show_default=True)
@@ -274,14 +263,12 @@ def main(**kwargs):
 
     c.G_kwargs.render_type = opts.render_type
     c.G_kwargs.camera_type = opts.camera_type
-    # c.G_kwargs.use_tri_plane = opts.use_tri_plane
 
     c.G_kwargs.tet_res = opts.tet_res
     c.G_kwargs.unit_2norm = opts.unit_2norm
     c.G_kwargs.use_normal_offset = opts.use_normal_offset
     c.G_kwargs.with_sr = opts.with_sr
 
-    # c.G_kwargs.geometry_type = opts.geometry_type
     c.num_gpus = opts.gpus
     c.batch_size = opts.batch
     c.batch_gpu = opts.batch_gpu or opts.batch // opts.gpus
@@ -325,7 +312,6 @@ def main(**kwargs):
     # Base configuration.
     c.ema_kimg = c.batch_size * 10 / 32
     c.G_kwargs.class_name = 'training.networks_get3d.GeneratorDMTETMesh'
-    # c.loss_kwargs.style_mixing_prob = 0.9  # Enable style mixing regularization.
     c.loss_kwargs.style_mixing_prob = 0.0  # Enable style mixing regularization.
     c.loss_kwargs.pl_weight = 0.0  # Enable path length regularization.
     c.G_reg_interval = 4  # Enable lazy regularization for G.

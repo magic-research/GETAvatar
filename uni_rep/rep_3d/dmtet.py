@@ -56,7 +56,6 @@ def sort_edges(edges_ex2):
 ###############################################################################
 # marching tetrahedrons (differentiable)
 ###############################################################################
-
 def marching_tets(pos_nx3, sdf_n, tet_fx4, triangle_table, num_triangles_table, base_tet_edges, v_id):
     with torch.no_grad():
         occ_n = sdf_n > 0
@@ -203,7 +202,6 @@ def marching_tets_tetmesh(
 ###############################################################################
 # Compact tet grid
 ###############################################################################
-
 def compact_tets(pos_nx3, sdf_n, tet_fx4):
     with torch.no_grad():
         # Find surface tets
@@ -223,7 +221,6 @@ def compact_tets(pos_nx3, sdf_n, tet_fx4):
 ###############################################################################
 # Subdivide volume
 ###############################################################################
-
 def batch_subdivide_volume(tet_pos_bxnx3, tet_bxfx4, grid_sdf):
     device = tet_pos_bxnx3.device
     # get new verts
@@ -324,7 +321,6 @@ def tet_to_tet_adj_sparse(tet_tx4):
 ###############################################################################
 # Compact grid
 ###############################################################################
-
 def get_tet_bxfx4x3(bxnxz, bxfx4):
     n_batch, z = bxnxz.shape[0], bxnxz.shape[2]
     gather_input = bxnxz.unsqueeze(2).expand(
@@ -367,7 +363,6 @@ def shrink_grid(tet_pos_bxnx3, tet_bxfx4, grid_sdf):
 ###############################################################################
 # Regularizer
 ###############################################################################
-
 def sdf_reg_loss(sdf, all_edges):
     sdf_f1x6x2 = sdf[all_edges.reshape(-1)].reshape(-1, 2)
     mask = torch.sign(sdf_f1x6x2[..., 0]) != torch.sign(sdf_f1x6x2[..., 1])

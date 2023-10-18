@@ -162,7 +162,8 @@ class StyleGAN2Loss(Loss):
                     rgb_img = upfirdn2d.filter2d(rgb_img, f / f.sum())
                     img = torch.cat((rgb_img, mask), dim=1)
 
-        if part_img is not None:
+        # if part_img is not None:
+        if False:
             logits = self.D(img, c, update_emas=update_emas, mask_pyramid=mask_pyramid, part_img=part_img)
         else:
             logits = self.D(img, c, update_emas=update_emas, mask_pyramid=mask_pyramid)
@@ -178,7 +179,8 @@ class StyleGAN2Loss(Loss):
                     normal_img, mask = img[:, :3], img[:, 3:]
                     normal_img = upfirdn2d.filter2d(normal_img, f / f.sum())
                     img = torch.cat((normal_img, mask), dim=1)
-        if part_img is not None:
+        # if part_img is not None:
+        if False:
             logits = self.D.forward_normal(img, c, update_emas=update_emas, mask_pyramid=mask_pyramid, part_img=part_img)
         else:
             logits = self.D.forward_normal(img, c, update_emas=update_emas, mask_pyramid=mask_pyramid)

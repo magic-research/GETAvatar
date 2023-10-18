@@ -45,9 +45,6 @@ def convert_json(src_dir, src_json_name, dst_json_name, device='cpu'):
         assert len(extrinsics_smpl_list)==98
         transforms[fname] = extrinsics_smpl_list
 
-        # print('extrinsics_smpl_list')
-        # print(extrinsics_smpl_list)
-        # break
 
     data = {'labels': transforms}
 
@@ -56,18 +53,10 @@ def convert_json(src_dir, src_json_name, dst_json_name, device='cpu'):
 
     return
 
-if __name__ == "__main__"
-    # convert_json(src_dir, src_json_name, dst_json_name)
-    src_dir = DATA_PATH
+if __name__ == "__main__":
+    src_dir = 'datasets/THuman2.0/THuman2.0_res512'
     src_json_name = 'aligned_camera_pose_smpl.json'
     dst_json_name = 'extrinsics_smpl.json'
-    if os.path.exists(src_dir):
-        convert_json(src_dir, src_json_name, dst_json_name)
-    else:
-        print(os.path.basename(src_dir) + ' do not exist!')
-
-    src_dir = SRC_PATH
-    
     if os.path.exists(src_dir):
         convert_json(src_dir, src_json_name, dst_json_name)
     else:

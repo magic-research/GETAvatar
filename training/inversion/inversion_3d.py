@@ -91,17 +91,11 @@ def inversion(
 
     print('==> inversion')
     os.makedirs(run_dir, exist_ok=True)
-    run_list = [500, 10, 11, 12, 38, 142, 186, 193, 214]
-    # for i in [12, 500, 10, 11, 38, 142, 186, 193, 214]:
-    for i  in [12, 56]:
-    # for i in range(dataset.__len__()):
-        # if i in run_list:
-            # continue
+    for i in range(dataset.__len__()):
         G_ema = copy.deepcopy(G)  # deepcopy can make sure they are correct.
         G_ema.load_state_dict(model_state_dict['G_ema'], strict=True)
         os.makedirs(os.path.join(run_dir, str(i).zfill(6)), exist_ok=True)
         image, label, mask, normal = dataset[i]
-        # skimage.io.imsave(os.path.join(run_dir, "{}_proj_mask.png".format(str(i).zfill(3))), mask)
         c = torch.from_numpy(label).to(device).unsqueeze(0)
         target_uint8 = np.array(image, dtype=np.uint8).transpose([1, 2, 0])
         target_pil = PIL.Image.fromarray(target_uint8)

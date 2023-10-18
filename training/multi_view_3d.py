@@ -210,25 +210,18 @@ def gen_interp_video(
 
                     c_input = torch.cat((c, c_smpl.reshape(1, -1)), dim=-1).reshape(1, -1).float()
 
-                    # final_img, antilias_mask, sdf, deformation, v_deformed, mesh_v, mesh_f, img_buffers_viz, \
-                    # mask_pyramid, tex_hard_mask, sdf_reg_loss, eikonal_loss, return_value
-                    # img, antilias_mask, sdf, deformation, v_deformed, mesh_v, mesh_f, img_buffers_viz, mask_pyramid, \
-                    # tex_hard_mask, sdf_reg_loss, eikonal_loss, render_return_value = G.synthesis.generate(
-                    #     ws_tex=w_tex.unsqueeze(0), c=c_input, ws_geo=w_geo.unsqueeze(0), 
-                    #     noise_mode='const', truncation_psi=0.7)
-
-                    img, _, _, _, _, _, _, _, _, _, _, _, _ = G.synthesis.generate(
+                    img, _, _, _, _, _, _, _, _, _, _, _, _, _ = G.synthesis.generate(
                         ws_tex=w_tex.unsqueeze(0), c=c_input, ws_geo=w_geo.unsqueeze(0), 
                         noise_mode='const', truncation_psi=0.7)
 
                     G.requires_grad_(True)
-                    normal_img, _, _, _, _, _, _, _, _, _, _, _, _ = G.synthesis.generate_normal_map(
+                    normal_img, _, _, _, _, _, _, _, _, _, _, _, _, _ = G.synthesis.generate_normal_map(
                         ws_tex=w_tex.unsqueeze(0), c=c_input, ws_geo=w_geo.unsqueeze(0),
                         noise_mode='const', truncation_psi=0.7)
                     G.requires_grad_(False)
                     
                     rgb_img = img[:, :3] 
-                    # all_imgs.append(rgb_img)
+
                     total_img = torch.cat((rgb_img, normal_img[:,:3]), dim=-1)
                     all_imgs.append(total_img)
 

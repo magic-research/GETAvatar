@@ -147,7 +147,7 @@ def init_dataset_kwargs(data, opt=None):
     try:
         dataset_kwargs = dnnlib.EasyDict(
             class_name='training.dataset.CameraSMPLDataset', 
-            path=data, use_labels=True, max_size=None, xflip=False, resolution=opt.img_res, load_normal_map=opt.load_normal_map)
+            path=data, use_labels=True, max_size=None, xflip=False, resolution=opt.img_res, load_normal_map=opt.load_normal_map, white_bg=opt.white_bg)
         dataset_obj = dnnlib.util.construct_class_by_name(**dataset_kwargs)  # Subclass of training.dataset.Dataset.
         dataset_kwargs.resolution = dataset_obj.resolution  # Be explicit about resolution.
         dataset_kwargs.use_labels = dataset_obj.has_labels  # Be explicit about labels.
@@ -196,7 +196,6 @@ def parse_comma_separated_list(s):
 @click.option('--deformation_multiplier', help='Multiplier for the predicted deformation', metavar='FLOAT', type=click.FloatRange(min=1.0), default=1.0, required=False)
 @click.option('--tri_plane_resolution', help='The resolution for tri plane', metavar='INT', type=click.IntRange(min=1), default=256)
 @click.option('--n_views', help='number of views when training generator', metavar='INT', type=click.IntRange(min=1), default=1)
-# @click.option('--use_tri_plane', help='Whether use tri plane representation', metavar='BOOL', type=bool, default=True, show_default=True)
 @click.option('--tet_res', help='Resolution for teteahedron', metavar='INT', type=click.IntRange(min=1), default=90)
 @click.option('--latent_dim', help='Dimention for latent code', metavar='INT', type=click.IntRange(min=1), default=512)
 @click.option('--geometry_type', help='The type of geometry generator', type=str, default='conv3d', show_default=True)
@@ -258,6 +257,7 @@ def parse_comma_separated_list(s):
 @click.option('--trunc-cutoff', 'truncation_cutoff', type=int, help='Truncation cutoff', default=14, show_default=True)
 @click.option('--save_gif', type=bool, help='save gif files', default=False, show_default=True)
 @click.option('--render_all_pose', type=bool, help='render all pose or not', default=False, show_default=True)
+@click.option('--white_bg', help='Add super-resolution module or not', metavar='BOOL', type=bool, required=False, default=True)
 
 
 def main(**kwargs):
@@ -305,14 +305,12 @@ def main(**kwargs):
 
     c.G_kwargs.render_type = opts.render_type
     c.G_kwargs.camera_type = opts.camera_type
-    # c.G_kwargs.use_tri_plane = opts.use_tri_plane
 
     c.G_kwargs.tet_res = opts.tet_res
     c.G_kwargs.unit_2norm = opts.unit_2norm
     c.G_kwargs.use_normal_offset = opts.use_normal_offset
     c.G_kwargs.with_sr = opts.with_sr
 
-    # c.G_kwargs.geometry_type = opts.geometry_type
     c.num_gpus = opts.gpus
     c.batch_size = opts.batch
     c.batch_gpu = opts.batch_gpu or opts.batch // opts.gpus
@@ -356,7 +354,6 @@ def main(**kwargs):
     # Base configuration.
     c.ema_kimg = c.batch_size * 10 / 32
     c.G_kwargs.class_name = 'training.networks_get3d.GeneratorDMTETMesh'
-    # c.loss_kwargs.style_mixing_prob = 0.9  # Enable style mixing regularization.
     c.loss_kwargs.style_mixing_prob = 0.0  # Enable style mixing regularization.
     c.loss_kwargs.pl_weight = 0.0  # Enable path length regularization.
     c.G_reg_interval = 4  # Enable lazy regularization for G.

@@ -507,9 +507,6 @@ def save_visualization_full(
                 z=z, geo_z=geo_z, c=c, noise_mode='const',
                 generate_raw=True, with_texture=False,truncation_psi=0.7)
 
-            # verts = mesh_v[0].detach().cpu().numpy()
-            # faces = mesh_f[0].detach().cpu().numpy()
-
             use_pytorch3d = False
 
             if use_pytorch3d:
@@ -538,8 +535,6 @@ def save_visualization_full(
                             ambient_color=((0.2,0.2,0.2),), diffuse_color=((0.65,.65,.65),),
                             device=z.device)
                 sdf_mc_mesh = Meshes(
-                    # verts=[torch.from_numpy(verts.copy()).type_as(mesh_v[0])], 
-                    # faces=[torch.from_numpy(faces.copy()).type_as(mesh_f[0])],
                     verts=dense_mesh_v,
                     faces=dense_mesh_f,
                     textures=None
@@ -568,8 +563,6 @@ def save_visualization_full(
             images_list.append(save_img.cpu().numpy())
             mesh_v_list.extend([v.data.cpu().numpy() for v in dense_mesh_v])
             mesh_f_list.extend([f.data.cpu().numpy() for f in dense_mesh_f])
-            # mesh_v_list.extend([verts])
-            # mesh_f_list.extend([faces])
 
         images = np.concatenate(images_list, axis=0)
 
