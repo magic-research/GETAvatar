@@ -1,10 +1,11 @@
 ## 🔥 🔥 🔥GETAvatar: Generative Textured Meshes for Animatable Human Avatars (ICCV 2023)🔥 🔥 🔥<br><sub>Official PyTorch implementation </sub>
 
-<center>
-<figure>
-<img src="./docs/assets/rp_mv.gif"/ height=240><img src="./docs/assets/thu_mocap_0070.gif" height=240 />
-</figure>
-</center>
+<table style="border:0px">
+   <tr>
+       <td><img src="./docs/assets/rp_mv.gif" frame=void rules=none></td>
+       <td><img src="./docs/assets/thu_mocap_0070.gif" frame=void rules=none></td>
+   </tr>
+</table>
 
 **GETAvatar: Generative Textured Meshes for Animatable Human Avatars**<br>
 [Xuanmeng Zhang*](https://scholar.google.com/citations?user=QzlBBMEAAAAJ&hl=en), [Jianfeng Zhang*](http://jeff95.me/), [Rohan Chacko](https://rohanchacko.github.io/),
