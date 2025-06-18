@@ -154,7 +154,7 @@ def inference(
 def load_mmcv_models():
     from mmdet.apis import init_detector
     from mmpose.apis import init_pose_model
-    os.system("export http_proxy=10.20.47.147:3128  https_proxy=10.20.47.147:3128 no_proxy=code.byted.org")
+
     dir_path = os.getcwd()
     pose_config = os.path.join(dir_path, "mmpose/configs/body/2d_kpt_sview_rgb_img/topdown_heatmap/mpii/hrnet_w32_mpii_256x256_dark.py")
     pose_checkpoint = "https://download.openmmlab.com/mmpose/top_down/hrnet/hrnet_w32_mpii_256x256_dark-f1601c5b_20200927.pth"
